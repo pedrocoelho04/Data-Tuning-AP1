@@ -1,0 +1,43 @@
+# =====================================================================
+# Data Tuning — AP1
+# SGBD: PostgreSQL 16 em container Docker
+#
+# Subir:      docker compose up -d
+# Ver status: docker compose ps
+# Entrar:     docker compose exec postgres psql -U tuner -d tpch
+#
+# ATENÇÃO: os scripts em ./db/init rodam APENAS na 1ª inicialização
+# (quando o volume pgdata está vazio). Para reiniciar do zero com a
+# baseline de fábrica:  docker compose down -v && docker compose up -d
+# =====================================================================
+
+name: data-tuning-ap1
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: data-tuning-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tpch
+      POSTGRES_USER: tuner
+      POSTGRES_PASSWORD: tuner
+    ports:
+      # Porta 5433 no host para não conflitar com um PostgreSQL local
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Executados em ordem alfabética na 1ª inicialização (só .sql/.sh!):
+      #   00-extensions.sql   -> cria extensões (pg_stat_statements)
+      #   01-baseline.sql     -> configurações de fábrica via ALTER SYSTEM
+      #   02-tpch-schema.sql  -> DDL do modelo TPC-H (8 tabelas, só PKs)
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    shm_size: 512mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tuner -d tpch"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  pgdata:
