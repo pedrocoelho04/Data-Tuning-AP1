@@ -45,6 +45,7 @@ ALTER SYSTEM SET max_worker_processes = 8;
 -- efetivamente coletar dados (parâmetro de postmaster: só vale na
 -- partida). Sem ele a view existe, mas fica sempre vazia.
 ALTER SYSTEM SET shared_preload_libraries = 'pg_stat_statements';
+
 -- Coleta de estatísticas por statement para o diagnóstico do passo 2.
 -- REMOVIDO OS DOIS COMANDO ABAIXO POR JÁ ESTAR ATIVO DE FORMA PADRÃO NA VERSÃO ATUAL DO POSTGRES
 --ALTER SYSTEM SET pg_stat_statements.track = 'all';

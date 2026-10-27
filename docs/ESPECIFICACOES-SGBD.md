@@ -10,7 +10,7 @@
 | Item | Especificação |
 |---|---|
 | Produto | PostgreSQL |
-| Versão | 16 (imagem `postgres:16-alpine` do Docker Hub) |
+| Versão | 16 |
 | Engine de armazenamento | Heap (MVCC) + índices B-tree |
 | Modo de execução | Container Docker (compose), rede bridge |
 | Porta no host | **5433** (mapeada para 5432 do container — evita conflito com Postgres local) |
@@ -26,9 +26,14 @@
 | Shared memory (`shm_size`) | 512 MB (necessário para `shared_buffers` até ~256 MB) |
 | Disco | volume Docker `pgdata` (durável, sobrevive a `down` sem `-v`) |
 
-> **Registro a completar no seu ambiente**: preencher com as specs reais da
-> máquina (modelo, CPU, RAM total, disco SSD/HDD, SO) antes de entregar.
-> A linha de base só é válida se o hardware estiver documentado.
+## 2. Recurso computacional (Host)
+
+| Recurso | Alocação |
+|---|---|
+| CPU | AMD Ryzen 7 5825U, 8 nucleos, 16 Threads |
+| Memória | 16 Gb DDR4 |
+| Armazenamento | NVMe M.2 PCIe 4.0 |
+| SO | Fedora 44 |
 
 ## 3. Modelo de dados
 
@@ -37,15 +42,15 @@ Performance Council) — 8 tabelas + 1 view:
 
 | Tabela | Registros (SF=0.1) | Registros (SF=1) | PK | Papel no benchmark |
 |---|---|---|---|---|
-| `region` | 0,5 | 5 | `r_regionkey` | regiões do mundo |
-| `nation` | 2,5 | 25 | `n_nationkey` | nações (FK→region) |
+| `region` | 5 | 5 | `r_regionkey` | regiões do mundo |
+| `nation` | 25 | 25 | `n_nationkey` | nações (FK→region) |
 | `part` | 20.000 | 200.000 | `p_partkey` | catálogo de peças |
 | `supplier` | 1.000 | 10.000 | `s_suppkey` | fornecedores (FK→nation) |
 | `partsupp` | 80.000 | 800.000 | `(ps_partkey, ps_suppkey)` | estoque por fornecedor |
 | `customer` | 15.000 | 150.000 | `c_custkey` | clientes (FK→nation) |
 | `orders` | 150.000 | 1.500.000 | `o_orderkey` | pedidos (FK→customer) |
 | `lineitem` | ~600.000 | ~6.000.000 | `(l_orderkey, l_linenumber)` | itens dos pedidos (tabela quente) |
-| **Total** | **~834.000** | **~8.340.000** | | |
+| **Total** | **~866.600** | **~8.340.000** | | |
 
 Decisões de projeto do DDL (`db/init/02-tpch-schema.sql`):
 - **Somente PRIMARY KEYs** — nenhum índice secundário na baseline.
@@ -65,8 +70,10 @@ Decisões de projeto do DDL (`db/init/02-tpch-schema.sql`):
 | SF=10 | ~60 mi | 15 mi | ~10 GB | volume "representativo" pleno |
 
 > A escala é controlada pelo `dbgen` (gerador oficial do TPC-H,
-> repositório `electrum/tpch-dbgen`): `./dbgen -s 1 -S 42`.
-> O SF=0.1 fica como padrão do compose para iteração rápida; **a
+> repositório `electrum/tpch-dbgen`), compilado em container:
+> `./dbgen -s 0.1 -f` (SF=0.1), `./dbgen -s 1 -f` (SF=1), etc.
+> O `-f` sobrescreve `.tbl` já existentes. O SF=0.1 fica como padrão
+> do compose para iteração rápida; **a
 > entrega final deve usar SF=1 ou SF=10** — registrar qual foi usado.
 
 ## 5. Configuração de baseline (valores de fábrica)
@@ -83,10 +90,10 @@ Arquivo: `db/init/01-baseline.sql` (aplicado na 1ª inicialização via
 | `random_page_cost` | 4.0 | padrão calibrado p/ HDD; em SSD o ajuste é tuning legítimo |
 | `max_parallel_workers_per_gather` | 2 | padrão |
 | `shared_preload_libraries` | `pg_stat_statements` | **medição** (passo 2); obrigatório p/ a extensão coletar |
-| `pg_stat_statements.track` | all | **medição** (passo 2), não tuning |
+| `pg_stat_statements.track` | all | **medição** (Foi comentado essa parte por já estar ativo de forma default nessa versão) |
 | `log_min_duration_statement` | 1000 (1 s) | rede de segurança para queries lentas |
 
-## 6. Ferramentas de medição habilitadas (não são tuning)
+## 6. Ferramentas de medição habilitadas
 
 | Ferramenta | Função no projeto |
 |---|---|
@@ -95,20 +102,50 @@ Arquivo: `db/init/01-baseline.sql` (aplicado na 1ª inicialização via
 | `pgbench` (nativo) | carga de escrita/OLTP para medir efeito colateral — **passo 3** |
 | `log_min_duration_statement` | log de queries > 1 s |
 
-## 7. Como subir o ambiente
+## 7. Como subir o ambiente e gerar os dados
+
+> Testado em Linux; no Windows (Docker Desktop + WSL2) os comandos são
+> idênticos, pois tudo roda em container.
 
 ```bash
 cd Data-Tuning-AP1
-docker compose up -d            # sobe o Postgres + aplica init/
+
+# 1. Sobe o Postgres (na 1ª subida aplica extensões, baseline e schema)
+docker compose up -d
 docker compose ps               # aguardar "healthy"
-docker compose exec postgres psql -U tuner -d tpch -c '\dt'
+
+# 2. (uma vez) builda a imagem do gerador TPC-H (compila o dbgen)
+docker build -t data-tuning-dbgen dbgen/
+
+# 3. Gera o dataset no volume compartilhado (SF=0.1 p/ dev; 1 ou 10 p/ entrega)
+docker run --rm -v data-tuning-ap1_dbgen:/work data-tuning-dbgen \
+  "cp -r /opt/tpch/. /work/ && cd /work && chmod +x dbgen qgen && ./dbgen -s 0.1 -f"
+
+# 4. Carrega no Postgres (idempotente: limpa e reimporta as 8 tabelas)
+sh db/load-tpch.sh
+
+# 5. Verifica contagens e tamanho
+docker compose exec postgres psql -U tuner -d tpch \
+  -c "SELECT 'lineitem' t, count(*) FROM lineitem
+      UNION ALL SELECT 'orders', count(*) FROM orders
+      UNION ALL SELECT 'partsupp', count(*) FROM partsupp;"
 ```
 
-Reiniciar do zero (apaga dados e reaplica a baseline de fábrica):
+Reiniciar do zero (apaga dados e reaplica baseline + schema):
 
 ```bash
 docker compose down -v && docker compose up -d
 ```
+
+Notas:
+- Scripts de `db/init` rodam **apenas** na 1ª inicialização (volume vazio).
+- `-f` no `dbgen` sobrescreve `.tbl` já existentes; troque `0.1` por `1`
+  ou `10` para o volume de entrega (regerar + `sh db/load-tpch.sh`).
+- As 22 queries oficiais ficam no volume em `/work/queries/` (Q1…Q22) —
+  são a carga de trabalho dos passos 2 e 3.
+- O load usa `sed 's/|$//'` para remover o `|` extra no fim de cada linha
+  (particularidade do build ORACLE do dbgen) antes do `\copy`.
+
 
 ## 8. Carga de trabalho (resumo — detalhe no passo 1 final)
 

@@ -27,11 +27,15 @@ services:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+
       # Executados em ordem alfabética na 1ª inicialização (só .sql/.sh!):
       #   00-extensions.sql   -> cria extensões (pg_stat_statements)
       #   01-baseline.sql     -> configurações de fábrica via ALTER SYSTEM
       #   02-tpch-schema.sql  -> DDL do modelo TPC-H (8 tabelas, só PKs)
       - ./db/init:/docker-entrypoint-initdb.d:ro
+
+      # Dataset TPC-H gerado pelo dbgen (db/load-tpch.sh usa este volume)
+      - dbgen:/dbgen
     shm_size: 512mb
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U tuner -d tpch"]
@@ -41,3 +45,8 @@ services:
 
 volumes:
   pgdata:
+  
+  # Compartilhado com o container do dbgen (gerador TPC-H):
+  #   docker run --rm -v data-tuning-ap1_dbgen:/work data-tuning-dbgen \
+  #     sh -c "cd /work && ./dbgen -s 0.1 -S 42 -D /work"
+  dbgen:

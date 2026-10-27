@@ -9,6 +9,10 @@
 --     criando as oportunidades de tuning dos passos 2 e 3.
 --   - FKs não são declaradas para acelerar o load (o dbgen garante a
 --     consistência referencial); as relações são documentadas abaixo.
+--   - Campos de comentário usam TEXT: o dbgen gera comentários maiores
+--     que o tamanho "oficial" da spec (ex.: ps_comment chega a 198
+--     chars vs. VARCHAR(115) do padrão), e TEXT evita truncamento em
+--     qualquer scale factor.
 --
 -- Cardinalidades por scale factor (SF):
 --   region   5*SF      nation   25*SF
@@ -26,7 +30,7 @@
 CREATE TABLE region (
     r_regionkey   INT NOT NULL,
     r_name        VARCHAR(25) NOT NULL,
-    r_comment     VARCHAR(152),
+    r_comment     TEXT,
     CONSTRAINT region_pkey PRIMARY KEY (r_regionkey)
 );
 
@@ -34,7 +38,7 @@ CREATE TABLE nation (
     n_nationkey   INT NOT NULL,
     n_name        VARCHAR(25) NOT NULL,
     n_regionkey   INT NOT NULL,
-    n_comment     VARCHAR(152),
+    n_comment     TEXT,
     CONSTRAINT nation_pkey PRIMARY KEY (n_nationkey)
 );
 
@@ -47,7 +51,7 @@ CREATE TABLE part (
     p_size        INT NOT NULL,
     p_container   VARCHAR(10) NOT NULL,
     p_unitprice   NUMERIC(10,2) NOT NULL,
-    p_comment     VARCHAR(23),
+    p_comment     TEXT,
     CONSTRAINT part_pkey PRIMARY KEY (p_partkey)
 );
 
@@ -58,7 +62,7 @@ CREATE TABLE supplier (
     s_nationkey   INT NOT NULL,
     s_phone       VARCHAR(15) NOT NULL,
     s_acctbal     NUMERIC(10,2) NOT NULL,
-    s_comment     VARCHAR(104),
+    s_comment     TEXT,
     CONSTRAINT supplier_pkey PRIMARY KEY (s_suppkey)
 );
 
@@ -67,7 +71,7 @@ CREATE TABLE partsupp (
     ps_suppkey    INT NOT NULL,
     ps_availqty   INT NOT NULL,
     ps_supplycost NUMERIC(10,2) NOT NULL,
-    ps_comment    VARCHAR(115),
+    ps_comment    TEXT,
     CONSTRAINT partsupp_pkey PRIMARY KEY (ps_partkey, ps_suppkey)
 );
 
@@ -79,7 +83,7 @@ CREATE TABLE customer (
     c_phone       VARCHAR(15) NOT NULL,
     c_acctbal     NUMERIC(10,2) NOT NULL,
     c_mktsegment  VARCHAR(10) NOT NULL,
-    c_comment     VARCHAR(117),
+    c_comment     TEXT,
     CONSTRAINT customer_pkey PRIMARY KEY (c_custkey)
 );
 
@@ -92,23 +96,27 @@ CREATE TABLE orders (
     o_orderpriority VARCHAR(40) NOT NULL,
     o_clerk         VARCHAR(15) NOT NULL,
     o_shippriority  INT NOT NULL,
-    o_comment       VARCHAR(79) NOT NULL,
+    o_comment       TEXT NOT NULL,
     CONSTRAINT orders_pkey PRIMARY KEY (o_orderkey)
 );
 
 CREATE TABLE lineitem (
-    l_orderkey    INT NOT NULL,
-    l_partkey     INT NOT NULL,
-    l_suppkey     INT NOT NULL,
-    l_linenumber  INT NOT NULL,
-    l_quantity    NUMERIC(10,2) NOT NULL,
+    l_orderkey     INT NOT NULL,
+    l_partkey      INT NOT NULL,
+    l_suppkey      INT NOT NULL,
+    l_linenumber   INT NOT NULL,
+    l_quantity     NUMERIC(10,2) NOT NULL,
     l_extendedprice NUMERIC(10,2) NOT NULL,
-    l_discount    NUMERIC(10,2) NOT NULL,
-    l_tax         NUMERIC(10,2) NOT NULL,
-    l_shipdate    DATE NOT NULL,
+    l_discount     NUMERIC(10,2) NOT NULL,
+    l_tax          NUMERIC(10,2) NOT NULL,
+    l_returnflag   CHAR(1) NOT NULL,
+    l_linestatus   CHAR(1) NOT NULL,
+    l_shipdate     DATE NOT NULL,
+    l_commitdate   DATE NOT NULL,
+    l_receiptdate  DATE NOT NULL,
     l_shipinstruct VARCHAR(25) NOT NULL,
-    l_shipmode    VARCHAR(10) NOT NULL,
-    l_comment     VARCHAR(44) NOT NULL,
+    l_shipmode     VARCHAR(10) NOT NULL,
+    l_comment      TEXT NOT NULL,
     CONSTRAINT lineitem_pkey PRIMARY KEY (l_orderkey, l_linenumber)
 );
 
