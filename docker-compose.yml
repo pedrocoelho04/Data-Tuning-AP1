@@ -1,5 +1,5 @@
 # =====================================================================
-# Data Tuning — AP1
+# Projeto Data Tuning — AP1
 # SGBD: PostgreSQL 16 em container Docker
 #
 # Subir:      docker compose up -d

@@ -46,8 +46,9 @@ ALTER SYSTEM SET max_worker_processes = 8;
 -- partida). Sem ele a view existe, mas fica sempre vazia.
 ALTER SYSTEM SET shared_preload_libraries = 'pg_stat_statements';
 -- Coleta de estatísticas por statement para o diagnóstico do passo 2.
-ALTER SYSTEM SET pg_stat_statements.track = 'all';
-ALTER SYSTEM SET pg_stat_statements.max = 10000;
+-- REMOVIDO OS DOIS COMANDO ABAIXO POR JÁ ESTAR ATIVO DE FORMA PADRÃO NA VERSÃO ATUAL DO POSTGRES
+--ALTER SYSTEM SET pg_stat_statements.track = 'all';
+--ALTER SYSTEM SET pg_stat_statements.max = 10000;
 
 -- --- Logs --------------------------------------------------------------
 -- Log de queries lentas (acima de 1s) como rede de segurança do diagnóstico.
