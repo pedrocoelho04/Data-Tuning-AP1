@@ -65,16 +65,22 @@ Decisões de projeto do DDL (`db/init/02-tpch-schema.sql`):
 
 | Scale factor | Lineitem | Orders | Tamanho em disco (aprox.) | Uso |
 |---|---|---|---|---|
-| **SF=0.1 (padrão do compose)** | ~600 mil | 150 mil | ~100 MB | desenvolvimento e CI — rápido |
-| SF=1 | ~6 mi | 1,5 mi | ~1 GB | recomendado para o trabalho |
+| **SF=0.1 (padrão do compose e da entrega)** | ~600 mil | 150 mil | ~100 MB | **escala usada no projeto** |
+| SF=1 | ~6 mi | 1,5 mi | ~1 GB | opcional (ver nota) |
 | SF=10 | ~60 mi | 15 mi | ~10 GB | volume "representativo" pleno |
 
 > A escala é controlada pelo `dbgen` (gerador oficial do TPC-H,
 > repositório `electrum/tpch-dbgen`), compilado em container:
 > `./dbgen -s 0.1 -f` (SF=0.1), `./dbgen -s 1 -f` (SF=1), etc.
-> O `-f` sobrescreve `.tbl` já existentes. O SF=0.1 fica como padrão
-> do compose para iteração rápida; **a
-> entrega final deve usar SF=1 ou SF=10** — registrar qual foi usado.
+> O `-f` sobrescreve `.tbl` já existentes.
+>
+> **Decisão de escala do projeto (SF=0.1)**: a entrega usa SF=0.1. O
+> SF=1 foi gerado e carregado durante o desenvolvimento, mas a medição
+> baseline ficou inviável — a Q17 sem índice levou **>1 h** (e a Q20,
+> similar), por causa da super-linearidade das subqueries correlacionadas.
+> O ganho relativo comprovado em SF=0.1 (−97%) é o valor de referência;
+> em SF maior o ganho absoluto tende a ser ainda maior. Detalhes em
+> `docs/PROCESSO-E-DIAGNOSTICO.md` (D.3.5 e D.5.3).
 
 ## 5. Configuração de baseline (valores de fábrica)
 
@@ -149,8 +155,12 @@ Notas:
 
 ## 8. Carga de trabalho (resumo — detalhe no passo 1 final)
 
-- **OLAP**: queries do conjunto TPC-H (22 queries padronizadas) contra o
-  dataset gerado — `lineitem` e `orders` são as tabelas quentes.
+- **OLAP**: as 22 queries do conjunto TPC-H contra o dataset gerado —
+  `lineitem` e `orders` são as tabelas quentes.
+  - **Fixadas para o benchmark**: `queries/fixed/*.sql` (parâmetros
+    oficiais via `qgen -d`, adaptadas ao Postgres) — ver
+    `queries/README.md` e `queries/baseline-SF01.md`.
+  - Gerar: `sh queries/generate.sh <SF>` · Medir: `sh queries/run.sh all -e`
 - **OLTP** (efeito colateral de escrita): `pgbench` contra schema
   transacional, para medir o custo de INSERT/UPDATE antes × depois de
   cada ação de tuning.

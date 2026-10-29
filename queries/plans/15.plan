@@ -1,0 +1,68 @@
+                                                                                 QUERY PLAN                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=280445.21..283390.00 rows=50 width=96) (actual time=947.866..962.427 rows=1 loops=1)
+   Buffers: shared hit=513 read=196664
+   InitPlan 1 (returns $1)
+     ->  Aggregate  (cost=141591.26..141591.27 rows=1 width=32) (actual time=469.030..469.194 rows=1 loops=1)
+           Buffers: shared hit=303 read=98284
+           ->  Finalize GroupAggregate  (cost=138853.66..141466.07 rows=10015 width=36) (actual time=436.142..468.307 rows=10000 loops=1)
+                 Group Key: lineitem_1.l_suppkey
+                 Buffers: shared hit=303 read=98284
+                 ->  Gather Merge  (cost=138853.66..141190.66 rows=20030 width=36) (actual time=436.097..444.514 rows=29985 loops=1)
+                       Workers Planned: 2
+                       Workers Launched: 2
+                       Buffers: shared hit=303 read=98284
+                       ->  Sort  (cost=137853.64..137878.67 rows=10015 width=36) (actual time=411.684..413.091 rows=9995 loops=3)
+                             Sort Key: lineitem_1.l_suppkey
+                             Sort Method: quicksort  Memory: 1322kB
+                             Buffers: shared hit=303 read=98284
+                             Worker 0:  Sort Method: quicksort  Memory: 1322kB
+                             Worker 1:  Sort Method: quicksort  Memory: 1321kB
+                             ->  Partial HashAggregate  (cost=137062.96..137188.15 rows=10015 width=36) (actual time=403.023..407.555 rows=9995 loops=3)
+                                   Group Key: lineitem_1.l_suppkey
+                                   Batches: 1  Memory Usage: 4241kB
+                                   Buffers: shared hit=289 read=98284
+                                   Worker 0:  Batches: 1  Memory Usage: 4241kB
+                                   Worker 1:  Batches: 1  Memory Usage: 4241kB
+                                   ->  Parallel Seq Scan on lineitem lineitem_1  (cost=0.00..136081.57 rows=98139 width=16) (actual time=9.160..345.619 rows=75318 loops=3)
+                                         Filter: ((l_shipdate >= '1996-01-01'::date) AND (l_shipdate < '1996-04-01 00:00:00'::timestamp without time zone))
+                                         Rows Removed by Filter: 1925087
+                                         Buffers: shared hit=289 read=98284
+   ->  Finalize GroupAggregate  (cost=138853.66..141491.11 rows=50 width=36) (actual time=947.746..962.140 rows=1 loops=1)
+         Group Key: lineitem.l_suppkey
+         Filter: (sum((lineitem.l_extendedprice * ('1'::numeric - lineitem.l_discount))) = $1)
+         Rows Removed by Filter: 9999
+         Buffers: shared hit=315 read=133386
+         ->  Gather Merge  (cost=138853.66..141190.66 rows=20030 width=36) (actual time=452.574..469.631 rows=29987 loops=1)
+               Workers Planned: 2
+               Workers Launched: 2
+               Buffers: shared hit=207 read=98380
+               ->  Sort  (cost=137853.64..137878.67 rows=10015 width=36) (actual time=428.244..429.939 rows=9996 loops=3)
+                     Sort Key: lineitem.l_suppkey
+                     Sort Method: quicksort  Memory: 1322kB
+                     Buffers: shared hit=207 read=98380
+                     Worker 0:  Sort Method: quicksort  Memory: 1321kB
+                     Worker 1:  Sort Method: quicksort  Memory: 1322kB
+                     ->  Partial HashAggregate  (cost=137062.96..137188.15 rows=10015 width=36) (actual time=419.492..424.041 rows=9996 loops=3)
+                           Group Key: lineitem.l_suppkey
+                           Batches: 1  Memory Usage: 4241kB
+                           Buffers: shared hit=193 read=98380
+                           Worker 0:  Batches: 1  Memory Usage: 4241kB
+                           Worker 1:  Batches: 1  Memory Usage: 4241kB
+                           ->  Parallel Seq Scan on lineitem  (cost=0.00..136081.57 rows=98139 width=16) (actual time=20.455..359.354 rows=75318 loops=3)
+                                 Filter: ((l_shipdate >= '1996-01-01'::date) AND (l_shipdate < '1996-04-01 00:00:00'::timestamp without time zone))
+                                 Rows Removed by Filter: 1925087
+                                 Buffers: shared hit=193 read=98380
+   ->  Index Scan using supplier_pkey on supplier  (cost=0.29..6.14 rows=1 width=64) (actual time=0.105..0.105 rows=1 loops=1)
+         Index Cond: (s_suppkey = lineitem.l_suppkey)
+         Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=207 read=6
+ Planning Time: 3.097 ms
+ JIT:
+   Functions: 62
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 10.340 ms, Inlining 0.000 ms, Optimization 3.598 ms, Emission 85.119 ms, Total 99.056 ms
+ Execution Time: 995.749 ms
+(64 rows)
+

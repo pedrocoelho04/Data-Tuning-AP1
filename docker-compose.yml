@@ -34,7 +34,9 @@ services:
       #   02-tpch-schema.sql  -> DDL do modelo TPC-H (8 tabelas, só PKs)
       - ./db/init:/docker-entrypoint-initdb.d:ro
 
-      # Dataset TPC-H gerado pelo dbgen (db/load-tpch.sh usa este volume)
+      # Dataset TPC-H gerado pelo dbgen (db/load-tpch.sh usa este volume).
+      # Padrão do projeto: SF=0.1 (dev/entrega). O volume SF=1
+      # (dbgen_sf1) existe mas não é montado por decisão do projeto.
       - dbgen:/dbgen
     shm_size: 512mb
     healthcheck:

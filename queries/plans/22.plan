@@ -1,0 +1,34 @@
+                                                             QUERY PLAN                                                              
+-------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=6983.13..6984.70 rows=63 width=72) (actual time=60.032..60.186 rows=7 loops=1)
+   Group Key: (SUBSTRING(customer.c_phone FROM 1 FOR 2))
+   Buffers: shared hit=3305
+   InitPlan 1 (returns $0)
+     ->  Aggregate  (cost=716.44..716.45 rows=1 width=32) (actual time=7.733..7.734 rows=1 loops=1)
+           Buffers: shared hit=359
+           ->  Seq Scan on customer customer_1  (cost=0.00..715.25 rows=476 width=6) (actual time=0.008..7.210 rows=3741 loops=1)
+                 Filter: ((c_acctbal > 0.00) AND (SUBSTRING(c_phone FROM 1 FOR 2) = ANY ('{13,31,23,29,30,18,17}'::text[])))
+                 Rows Removed by Filter: 11259
+                 Buffers: shared hit=359
+   ->  Sort  (cost=6266.67..6266.83 rows=63 width=38) (actual time=59.992..60.034 rows=641 loops=1)
+         Sort Key: (SUBSTRING(customer.c_phone FROM 1 FOR 2))
+         Sort Method: quicksort  Memory: 49kB
+         Buffers: shared hit=3305
+         ->  Hash Right Anti Join  (cost=717.44..6264.79 rows=63 width=38) (actual time=59.500..59.670 rows=641 loops=1)
+               Hash Cond: (orders.o_custkey = customer.c_custkey)
+               Buffers: shared hit=3302
+               ->  Seq Scan on orders  (cost=0.00..4084.00 rows=150000 width=4) (actual time=0.011..21.613 rows=150000 loops=1)
+                     Buffers: shared hit=2584
+               ->  Hash  (cost=715.25..715.25 rows=175 width=26) (actual time=13.542..13.543 rows=1856 loops=1)
+                     Buckets: 2048 (originally 1024)  Batches: 1 (originally 1)  Memory Usage: 125kB
+                     Buffers: shared hit=718
+                     ->  Seq Scan on customer  (cost=0.00..715.25 rows=175 width=26) (actual time=7.757..12.948 rows=1856 loops=1)
+                           Filter: ((c_acctbal > $0) AND (SUBSTRING(c_phone FROM 1 FOR 2) = ANY ('{13,31,23,29,30,18,17}'::text[])))
+                           Rows Removed by Filter: 13144
+                           Buffers: shared hit=718
+ Planning:
+   Buffers: shared hit=209
+ Planning Time: 2.730 ms
+ Execution Time: 60.487 ms
+(30 rows)
+

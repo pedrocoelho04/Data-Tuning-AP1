@@ -1,0 +1,25 @@
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=6903.12..6903.13 rows=1 width=32) (actual time=25.891..25.893 rows=1 loops=1)
+   Buffers: shared hit=824 read=984
+   ->  Nested Loop  (cost=4.66..6903.03 rows=11 width=12) (actual time=0.424..25.864 rows=10 loops=1)
+         Buffers: shared hit=824 read=984
+         ->  Seq Scan on part  (cost=0.00..1222.00 rows=48 width=25) (actual time=0.035..6.342 rows=42 loops=1)
+               Filter: ((p_size >= 1) AND ((((p_brand)::text = 'Brand#12'::text) AND ((p_container)::text = ANY ('{"SM CASE","SM BOX","SM PACK","SM PKG"}'::text[])) AND (p_size <= 5)) OR (((p_brand)::text = 'Brand#23'::text) AND ((p_container)::text = ANY ('{"MED BAG","MED BOX","MED PKG","MED PACK"}'::text[])) AND (p_size <= 10)) OR (((p_brand)::text = 'Brand#34'::text) AND ((p_container)::text = ANY ('{"LG CASE","LG BOX","LG PACK","LG PKG"}'::text[])) AND (p_size <= 15))))
+               Rows Removed by Filter: 19958
+               Buffers: shared hit=372
+         ->  Bitmap Heap Scan on lineitem  (cost=4.66..118.34 rows=1 width=21) (actual time=0.407..0.450 rows=0 loops=42)
+               Recheck Cond: (l_partkey = part.p_partkey)
+               Filter: (((l_shipmode)::text = ANY ('{AIR,"AIR REG"}'::text[])) AND ((l_shipinstruct)::text = 'DELIVER IN PERSON'::text) AND (((l_quantity >= '1'::numeric) AND (l_quantity <= '11'::numeric)) OR ((l_quantity >= '10'::numeric) AND (l_quantity <= '20'::numeric)) OR ((l_quantity >= '20'::numeric) AND (l_quantity <= '30'::numeric))) AND ((((part.p_brand)::text = 'Brand#12'::text) AND ((part.p_container)::text = ANY ('{"SM CASE","SM BOX","SM PACK","SM PKG"}'::text[])) AND (l_quantity >= '1'::numeric) AND (l_quantity <= '11'::numeric) AND (part.p_size <= 5)) OR (((part.p_brand)::text = 'Brand#23'::text) AND ((part.p_container)::text = ANY ('{"MED BAG","MED BOX","MED PKG","MED PACK"}'::text[])) AND (l_quantity >= '10'::numeric) AND (l_quantity <= '20'::numeric) AND (part.p_size <= 10)) OR (((part.p_brand)::text = 'Brand#34'::text) AND ((part.p_container)::text = ANY ('{"LG CASE","LG BOX","LG PACK","LG PKG"}'::text[])) AND (l_quantity >= '20'::numeric) AND (l_quantity <= '30'::numeric) AND (part.p_size <= 15))))
+               Rows Removed by Filter: 31
+               Heap Blocks: exact=1298
+               Buffers: shared hit=452 read=984
+               ->  Bitmap Index Scan on idx_li_partkey_suppkey  (cost=0.00..4.66 rows=31 width=0) (actual time=0.045..0.045 rows=31 loops=42)
+                     Index Cond: (l_partkey = part.p_partkey)
+                     Buffers: shared hit=92 read=46
+ Planning:
+   Buffers: shared hit=308 read=1
+ Planning Time: 4.397 ms
+ Execution Time: 26.118 ms
+(21 rows)
+

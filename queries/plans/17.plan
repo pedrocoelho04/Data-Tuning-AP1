@@ -1,0 +1,26 @@
+                                                                                  QUERY PLAN                                                                                  
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=1640.36..1640.37 rows=1 width=32) (actual time=4.950..4.952 rows=1 loops=1)
+   Buffers: shared hit=470 read=58
+   ->  Nested Loop  (cost=9.49..1639.91 rows=180 width=8) (actual time=0.556..4.935 rows=43 loops=1)
+         Buffers: shared hit=470 read=58
+         ->  Seq Scan on part  (cost=0.00..672.00 rows=18 width=4) (actual time=0.421..3.533 rows=18 loops=1)
+               Filter: (((p_brand)::text = 'Brand#23'::text) AND ((p_container)::text = 'MED BOX'::text))
+               Rows Removed by Filter: 19982
+               Buffers: shared hit=372
+         ->  Index Scan using idx_li_partkey_suppkey on lineitem  (cost=9.49..53.67 rows=10 width=17) (actual time=0.017..0.036 rows=2 loops=18)
+               Index Cond: ((l_partkey = part.p_partkey) AND (l_quantity < (SubPlan 1)))
+               Buffers: shared hit=70 read=29
+               SubPlan 1
+                 ->  Aggregate  (cost=9.05..9.06 rows=1 width=32) (actual time=0.039..0.039 rows=1 loops=18)
+                       Buffers: shared hit=28 read=29
+                       ->  Index Only Scan using idx_li_partkey_suppkey on lineitem lineitem_1  (cost=0.42..8.97 rows=31 width=5) (actual time=0.026..0.032 rows=31 loops=18)
+                             Index Cond: (l_partkey = part.p_partkey)
+                             Heap Fetches: 0
+                             Buffers: shared hit=28 read=29
+ Planning:
+   Buffers: shared hit=317 read=9
+ Planning Time: 4.194 ms
+ Execution Time: 5.169 ms
+(22 rows)
+

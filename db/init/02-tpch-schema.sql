@@ -121,11 +121,15 @@ CREATE TABLE lineitem (
 );
 
 -- =====================================================================
--- VIEW de conveniência (usada por queries do TPC-H)
+-- VIEW de conveniência revenue0 (usada pela Q15 do TPC-H).
+-- Nomes de coluna alinhados ao template Q15: supplier_no, total_revenue.
+-- A Q15 fixada (queries/fixed/15.sql) é APENAS o SELECT sobre esta view;
+-- o create/drop view do template original foi removido para o benchmark
+-- rodar como statement único (decisão registrada em queries/README).
 -- =====================================================================
 CREATE VIEW revenue0 AS
-SELECT l_suppkey AS supplierno,
-       sum(l_extendedprice * (1 - l_discount)) AS totalrevenue
+SELECT l_suppkey AS supplier_no,
+       sum(l_extendedprice * (1 - l_discount)) AS total_revenue
 FROM lineitem
 WHERE l_shipdate >= date '1996-01-01'
   AND l_shipdate < date '1996-01-01' + interval '3' month
